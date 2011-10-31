@@ -19,16 +19,17 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import jdave.Specification;
 
 /**
  * @author Joni Freeman
  * @author Pekka Enberg
+ * @author Kim Blomqvist
  */
 public abstract class Context {
     private final Class<? extends Specification<?>> specType;
     private final Class<?> contextType;
+    private ISpecIntrospection introspection;
 
     public Context(final Class<? extends Specification<?>> specType, final Class<?> contextType) {
         this.specType = specType;
@@ -51,29 +52,34 @@ public abstract class Context {
     }
 
     private boolean isBehavior(final Method method) {
-        return newIntrospection().isBehavior(method);
+        return getIntrospection().isBehavior(method);
     }
 
     public boolean isContextClass() {
-        return newIntrospection().isContextClass(specType, contextType);
+        return getIntrospection().isContextClass(specType, contextType);
     }
 
-    private ISpecIntrospection newIntrospection() {
+    synchronized private ISpecIntrospection getIntrospection() {
+        if (null != introspection) {
+            return introspection;
+        }
         try {
             Class<?> clazz = specType;
             do {
                 final Collection<Class<?>> types = typesOf(clazz);
                 for (final Class<?> type : types) {
                     if (hasStrategy(type)) {
-                        return type.getAnnotation(IntrospectionStrategy.class).value()
+                        introspection = type.getAnnotation(IntrospectionStrategy.class).value()
                                 .newInstance();
+                        return introspection;
                     }
                 }
             } while ((clazz = clazz.getSuperclass()) != null);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
-        return new DefaultSpecIntrospection();
+        introspection = new DefaultSpecIntrospection();
+        return introspection;
     }
 
     private Collection<Class<?>> typesOf(final Class<?> clazz) {
