@@ -16,10 +16,8 @@
 package jdave.runner;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import jdave.Specification;
+import jdave.support.Reflection;
 
 /**
  * @author Joni Freeman
@@ -63,36 +61,17 @@ public abstract class Context {
         if (null != introspection) {
             return introspection;
         }
-        try {
-            Class<?> clazz = specType;
-            do {
-                final Collection<Class<?>> types = typesOf(clazz);
-                for (final Class<?> type : types) {
-                    if (hasStrategy(type)) {
-                        introspection = type.getAnnotation(IntrospectionStrategy.class).value()
-                                .newInstance();
-                        return introspection;
-                    }
-                }
-            } while ((clazz = clazz.getSuperclass()) != null);
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
+        IntrospectionStrategy strategy = Reflection.getAnnotation(specType, IntrospectionStrategy.class);
+        if (null != strategy) {
+            try {
+                introspection = strategy.value().newInstance();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            introspection = new DefaultSpecIntrospection();
         }
-        introspection = new DefaultSpecIntrospection();
         return introspection;
     }
 
-    private Collection<Class<?>> typesOf(final Class<?> clazz) {
-        final List<Class<?>> types = new ArrayList<Class<?>>();
-        types.add(clazz);
-        final Class<?>[] interfaces = clazz.getInterfaces();
-        for (final Class<?> anInterface : interfaces) {
-            types.add(anInterface);
-        }
-        return types;
-    }
-
-    boolean hasStrategy(final Class<?> type) {
-        return type.isAnnotationPresent(IntrospectionStrategy.class);
-    }
 }

@@ -15,9 +15,13 @@
  */
 package jdave.support;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Lasse Koskela
@@ -85,5 +89,30 @@ public class Reflection {
             parameterTypes = new Class[0];
         }
         return Arrays.asList(method.getParameterTypes()).equals(Arrays.asList(parameterTypes));
+    }
+
+    /**
+     * Return annotation found on the class or any of its interfaces, or null if not found.
+     */
+    public static <T extends Annotation> T getAnnotation(Class<?> clazz, Class<T> annotation) {
+        do {
+            final Collection<Class<?>> types = Reflection.typesOf(clazz);
+            for (final Class<?> type : types) {
+                if (type.isAnnotationPresent(annotation)) {
+                    return type.getAnnotation(annotation);
+                }
+            }
+        } while ((clazz = clazz.getSuperclass()) != null);
+        return null;
+    }
+
+    private static Collection<Class<?>> typesOf(final Class<?> clazz) {
+        final List<Class<?>> types = new ArrayList<Class<?>>();
+        types.add(clazz);
+        final Class<?>[] interfaces = clazz.getInterfaces();
+        for (final Class<?> anInterface : interfaces) {
+            types.add(anInterface);
+        }
+        return types;
     }
 }
