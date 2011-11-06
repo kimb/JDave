@@ -16,7 +16,10 @@
 package jdave.runner;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import jdave.Parallel;
 import jdave.Specification;
+import jdave.support.ParallelExecutor;
 import jdave.support.Reflection;
 
 /**
@@ -28,6 +31,7 @@ public abstract class Context {
     private final Class<? extends Specification<?>> specType;
     private final Class<?> contextType;
     private ISpecIntrospection introspection;
+    private ISpecExecutor executor;
 
     public Context(final Class<? extends Specification<?>> specType, final Class<?> contextType) {
         this.specType = specType;
@@ -42,11 +46,18 @@ public abstract class Context {
             Class<? extends Specification<?>> specType, Class<?> contextType);
 
     void run(final ISpecVisitor callback) {
+        final ISpecExecutor runExecutor = getExecutor();
         for (final Method method : ClassMemberSorter.getMethods(contextType)) {
             if (isBehavior(method)) {
-                callback.onBehavior(newBehavior(method, specType, contextType));
+                runExecutor.schedule(new Callable<Void>() {
+                    public Void call() throws Exception {
+                        callback.onBehavior(newBehavior(method, specType, contextType));
+                        return null;
+                    }
+                });
             }
         }
+        runExecutor.getResults();
     }
 
     private boolean isBehavior(final Method method) {
@@ -72,6 +83,18 @@ public abstract class Context {
             introspection = new DefaultSpecIntrospection();
         }
         return introspection;
+    }
+
+    synchronized protected ISpecExecutor getExecutor() {
+        if (null != executor) {
+            return executor;
+        }
+        if (null != Reflection.getAnnotation(specType, Parallel.class)) {
+            executor = new ParallelExecutor();
+        } else {
+            executor = SerialSpecExecutor.getInstance();
+        }
+        return executor;
     }
 
 }

@@ -16,6 +16,7 @@
 package jdave.support;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -114,5 +115,30 @@ public class Reflection {
             types.add(anInterface);
         }
         return types;
+    }
+
+    public static void setPrivateField(Object obj, String fieldName, Object newValue) {
+        try {
+            Field field;
+            Class<?> objClass = obj.getClass();
+            while (true) {
+                try {
+                    field = objClass.getDeclaredField(fieldName);
+                    break;
+                } catch (NoSuchFieldException e) {
+                    // Nothing, proceed to try for superclass
+                }
+                objClass = objClass.getSuperclass();
+                if (objClass == null) {
+                    throw new NoSuchFieldException(fieldName);
+                }
+            }
+            boolean accessible = field.isAccessible();
+            field.setAccessible(true);
+            field.set(obj, newValue);
+            field.setAccessible(accessible);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set field: " + fieldName + " on: " + obj, e);
+        }
     }
 }

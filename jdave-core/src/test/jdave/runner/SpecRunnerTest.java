@@ -18,17 +18,19 @@ package jdave.runner;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import jdave.Parallel;
 import jdave.ResultsAdapter;
 import jdave.SpecVisitorAdapter;
 import jdave.Specification;
-
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -170,6 +172,48 @@ public class SpecRunnerTest {
         SpecForOtherCreations.whenCreateDoesNotExist = 0;
         runner.run(SpecForOtherCreations.class, new SpecVisitorAdapter(new ResultsAdapter()));
         assertEquals(1, SpecForOtherCreations.whenCreateDoesNotExist);
+    }
+
+    @Test
+    public void testShouldSupportParallelExecutor() {
+        BooleanSpec.actualCalls.clear();
+        BaseSpec.actualCalls.clear();
+        runner.run(ParallelBooleanSpec.class, new SpecVisitorAdapter(new ResultsAdapter()) {
+            @Override
+            public void onContext(Context context) {
+                Exception stack = new Exception();
+                List<StackTraceElement> stackList = Arrays.asList(stack.getStackTrace());
+                if (!stackList.toString().contains("java.util.concurrent.FutureTask")) {
+                    Assert.fail("Not executed by ParallelExecutor (ie. as FutureTask): "
+                            + stackList.toString());
+                }
+            }
+        });
+        Collections.sort(BaseSpec.actualCalls);
+        Collections.sort(BooleanSpec.actualCalls);
+        assertEquals(Arrays.asList("anyBehavior", "inheritedBehavior"), BaseSpec.actualCalls);
+        assertEquals(Arrays.asList("shouldBeEqualToTrue", "shouldEqualToFalse",
+                "shouldNotBeEqualToTrue"), BooleanSpec.actualCalls);
+    }
+
+    @Test
+    public void testParallelExecutionsReallyRunsBehavioursInParallel() throws Exception {
+        final CyclicBarrier behaviourBarrier = new CyclicBarrier(ParallelBehavioursSpec.BEHAVIOURS);
+        final AtomicReference<Exception> parallelizationProblem = new AtomicReference<Exception>();
+        runner.runContexts(ParallelBehavioursSpec.class, new ISpecVisitor() {
+            public void onContext(Context context) { }
+            public void onBehavior(Behavior behavior) {
+                try {
+                    behaviourBarrier.await(200, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    parallelizationProblem.set(e);
+                }
+            }
+            public void afterContext(Context context) { }
+        });
+        if (parallelizationProblem.get()!=null) {
+            throw parallelizationProblem.get();
+        }
     }
 
     public static class BaseSpec extends Specification<Boolean> {
@@ -368,4 +412,19 @@ public class SpecRunnerTest {
             }
         }
     }
+
+    @Parallel
+    public static class ParallelBooleanSpec extends BooleanSpec {
+    }
+
+    @Parallel
+    public static class ParallelBehavioursSpec extends Specification<Void> {
+        public static final int BEHAVIOURS = 3;
+        public class Context {
+            public void dummyBehaviour1() { }
+            public void dummyBehaviour2() { }
+            public void dummyBehaviour3() { }
+        }
+    }
+
 }

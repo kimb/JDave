@@ -137,4 +137,26 @@ public class ReflectionTest {
         Assert.assertNotNull(Reflection.getAnnotation(ExtendsGroupImplementsIgnoredInterface.class, Group.class));
         Assert.assertNull(Reflection.getAnnotation(ExtendsGroupImplementsIgnoredInterface.class, Groups.class));
     }
+
+    public static class WithPrivateField {
+        private boolean field;
+        public boolean getField() {
+            return field;
+        }
+    }
+    WithPrivateField obj = new WithPrivateField();
+
+    @Test
+    public void setPrivateField() {
+        Reflection.setPrivateField(obj, "field", Boolean.TRUE);
+        Assert.assertTrue(obj.getField());
+    }
+    @Test(expected=RuntimeException.class)
+    public void setPrivateFieldWithWrongObjectTypeThrowsException() {
+        Reflection.setPrivateField(obj, "field", new Object());
+    }
+    @Test(expected=RuntimeException.class)
+    public void setNonExistantFieldThrowsException() {
+        Reflection.setPrivateField(obj, "noField", Boolean.TRUE);
+    }
 }
