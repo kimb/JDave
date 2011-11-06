@@ -198,9 +198,19 @@ public class SpecRunnerTest {
 
     @Test
     public void testParallelExecutionsReallyRunsBehavioursInParallel() throws Exception {
-        final CyclicBarrier behaviourBarrier = new CyclicBarrier(ParallelBehavioursSpec.BEHAVIOURS);
+        assertSpecHasParallelization(ParallelBehavioursSpec.class, ParallelBehavioursSpec.BEHAVIOURS);
+    }
+
+    @Test
+    public void testParallelExecutionsReallyRunsContextsInParallel() throws Exception {
+        assertSpecHasParallelization(ParallelContextsSpec.class, ParallelContextsSpec.CONTEXTS);
+    }
+
+    protected void assertSpecHasParallelization(Class<? extends Specification<?>> specType, int cycleCount) 
+            throws Exception {
+        final CyclicBarrier behaviourBarrier = new CyclicBarrier(cycleCount);
         final AtomicReference<Exception> parallelizationProblem = new AtomicReference<Exception>();
-        runner.runContexts(ParallelBehavioursSpec.class, new ISpecVisitor() {
+        runner.runContexts(specType, new ISpecVisitor() {
             public void onContext(Context context) { }
             public void onBehavior(Behavior behavior) {
                 try {
@@ -424,6 +434,20 @@ public class SpecRunnerTest {
             public void dummyBehaviour1() { }
             public void dummyBehaviour2() { }
             public void dummyBehaviour3() { }
+        }
+    }
+
+    @Parallel
+    public static class ParallelContextsSpec extends Specification<Void> {
+        public static final int CONTEXTS = 3;
+        public class ParallelContext1 {
+            public void dummyBehaviour() { }
+        }
+        public class ParallelContext2 {
+            public void dummyBehaviour() { }
+        }
+        public class ParallelContext3 {
+            public void dummyBehaviour() { }
         }
     }
 
