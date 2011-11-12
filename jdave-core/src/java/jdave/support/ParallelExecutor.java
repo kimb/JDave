@@ -28,16 +28,33 @@ import jdave.runner.ISpecExecutor;
  */
 public class ParallelExecutor implements ISpecExecutor {
 
-    protected ThreadLocal<ExecutorService> contextRunExecutor = new ThreadLocal<ExecutorService>() {
-        protected ExecutorService initialValue() {
-            return Executors.newFixedThreadPool(4);
+    public static class ThreadedExecutorService {
+        ExecutorService executor;
+        int executorThreads;
+        public ThreadedExecutorService(int executorThreads) {
+            super();
+            this.executorThreads = executorThreads;
+            this.executor = Executors.newFixedThreadPool(executorThreads);
         }
-    };
+    }
+
+    // For performance, cache ExecutorService as long as parameters don't change
+    protected static final ThreadLocal<ThreadedExecutorService> currentExecutor = new ThreadLocal<ThreadedExecutorService>();
+
+    public ParallelExecutor(final int threads) {
+        ThreadedExecutorService current = currentExecutor.get();
+        if (current == null || current.executorThreads != threads) {
+            if (current != null) {
+                current.executor.shutdown();
+            }
+            currentExecutor.set(new ThreadedExecutorService(threads));
+        }
+    }
 
     private final List<Future<Void>> contextFutureResults = new ArrayList<Future<Void>>();
 
     public void schedule(final Callable<Void> contextCallable) {
-        contextFutureResults.add(contextRunExecutor.get().submit(contextCallable));
+        contextFutureResults.add(currentExecutor.get().executor.submit(contextCallable));
     }
 
     public void getResults() {
@@ -49,6 +66,5 @@ public class ParallelExecutor implements ISpecExecutor {
             }
         }
     }
-
 
 }

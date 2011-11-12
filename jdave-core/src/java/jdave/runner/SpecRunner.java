@@ -124,8 +124,9 @@ public class SpecRunner {
     }
 
     protected ISpecExecutor getExecutor(final Class<?> specType) {
-        if (null != Reflection.getAnnotation(specType, Parallel.class)) {
-            return new ParallelExecutor();
+        Parallel parallelAnnotation = Reflection.getAnnotation(specType, Parallel.class);
+        if (null != parallelAnnotation && parallelAnnotation.contextThreads() > 1) {
+            return new ParallelExecutor(parallelAnnotation.contextThreads());
         } else {
             return SerialSpecExecutor.getInstance();
         }

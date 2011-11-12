@@ -22,10 +22,32 @@ import java.lang.annotation.Target;
 
 /**
  * Mark specification contexts suitable for parallel execution.
+ * <p/>
+ * To disable either of context or behaviour parallelization, set the corresponding
+ * of parameter to <code>1</code>.
+ * <p/>
+ * The maximum number of active threads on executing behaviours is thus:
+ * <code>contextThreads * behaviourThreads</code>.
  * @author Kim Blomqvist
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Parallel {
+
+    public static int defaultContextThreads = 1;
+    public static int defaultBehaviourThreads = 2;
+
+    /**
+     * Number of threads to use for the running of <b>Contexts</b> of a specification.
+     * @return defaults to 4.
+     */
+    int contextThreads() default defaultContextThreads;
+
+    /**
+     * Number of threads to use for the running of <b>Behaviours</b> of each Context. Note:
+     * Each context of a Specification gets its own set of behaviour executing threads.
+     * @return the number of threads executing behaviours of each context. Defaults to 8.
+     */
+    int behaviourThreads() default defaultBehaviourThreads;
 
 }

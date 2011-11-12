@@ -30,6 +30,7 @@ import jdave.Parallel;
 import jdave.ResultsAdapter;
 import jdave.SpecVisitorAdapter;
 import jdave.Specification;
+import jdave.support.Reflection;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -198,12 +199,14 @@ public class SpecRunnerTest {
 
     @Test
     public void testParallelExecutionsReallyRunsBehavioursInParallel() throws Exception {
-        assertSpecHasParallelization(ParallelBehavioursSpec.class, ParallelBehavioursSpec.BEHAVIOURS);
+        Parallel ann = Reflection.getAnnotation(ParallelBehavioursSpec.class, Parallel.class);
+        assertSpecHasParallelization(ParallelBehavioursSpec.class, ann.behaviourThreads());
     }
 
     @Test
     public void testParallelExecutionsReallyRunsContextsInParallel() throws Exception {
-        assertSpecHasParallelization(ParallelContextsSpec.class, ParallelContextsSpec.CONTEXTS);
+        Parallel ann = Reflection.getAnnotation(ParallelBehavioursSpec.class, Parallel.class);
+        assertSpecHasParallelization(ParallelContextsSpec.class, ann.contextThreads());
     }
 
     protected void assertSpecHasParallelization(Class<? extends Specification<?>> specType, int cycleCount) 
@@ -423,13 +426,12 @@ public class SpecRunnerTest {
         }
     }
 
-    @Parallel
+    @Parallel(contextThreads=2, behaviourThreads=5)
     public static class ParallelBooleanSpec extends BooleanSpec {
     }
 
-    @Parallel
+    @Parallel(contextThreads=1, behaviourThreads=3)
     public static class ParallelBehavioursSpec extends Specification<Void> {
-        public static final int BEHAVIOURS = 3;
         public class Context {
             public void dummyBehaviour1() { }
             public void dummyBehaviour2() { }
@@ -437,9 +439,8 @@ public class SpecRunnerTest {
         }
     }
 
-    @Parallel
+    @Parallel(contextThreads=3, behaviourThreads=1)
     public static class ParallelContextsSpec extends Specification<Void> {
-        public static final int CONTEXTS = 3;
         public class ParallelContext1 {
             public void dummyBehaviour() { }
         }

@@ -89,8 +89,9 @@ public abstract class Context {
         if (null != executor) {
             return executor;
         }
-        if (null != Reflection.getAnnotation(specType, Parallel.class)) {
-            executor = new ParallelExecutor();
+        Parallel parallelAnnotation = Reflection.getAnnotation(specType, Parallel.class);
+        if (null != parallelAnnotation && parallelAnnotation.behaviourThreads() > 1) {
+            executor = new ParallelExecutor(parallelAnnotation.behaviourThreads());
         } else {
             executor = SerialSpecExecutor.getInstance();
         }
