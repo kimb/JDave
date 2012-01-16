@@ -27,7 +27,7 @@ import org.junit.runner.RunWith;
  * @author Kim Blomqvist
  */
 @RunWith(JDaveRunner.class)
-@Parallel
+@Parallel(contextThreads=2, behaviourThreads=2)
 public class ParallelExampleSpec extends Specification<Void> {
     static CyclicBarrier contextBarrier = new CyclicBarrier(2);
     static CyclicBarrier behaviourBarrier = new CyclicBarrier(2);
