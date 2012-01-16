@@ -65,7 +65,7 @@ public class ChannelSpec extends Specification<Channel> {
             }});
             long start = System.nanoTime();
             context.waitForAjax();
-            specify(executionTimeInMillis(start), is(closeTo(50, 15)));
+            specify(executionTimeInMillis(start), is(closeTo(50, 30)));
         }
 
         private Double executionTimeInMillis(long start) {
